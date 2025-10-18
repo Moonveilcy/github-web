@@ -14,7 +14,13 @@ function App() {
       <Header />
       
       <main className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
-        {github.notification && ( /* ... */ )}
+        {github.notification && (
+          <Toast 
+            message={github.notification.message} 
+            type={github.notification.type} 
+            onDismiss={() => github.setNotification(null)} 
+          />
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-8">
           <div className="space-y-8">
