@@ -34,16 +34,18 @@ function App() {
               files={github.files} 
               processFiles={github.processFiles} 
               removeFile={github.removeFile}
-              // INI BAGIAN YANG DIPERBAIKI:
               updateFilePath={github.updateFilePath} 
             />
           </div>
           <div className="space-y-8 mt-8 lg:mt-0">
              <ActionsSection 
               isLoading={github.isLoading}
+              isScanning={github.isScanning}
               files={github.files}
+              repoFilled={!!github.token && !!github.repo}
               onCommitAndPush={github.handleCommitAndPush}
               onFetchCommits={github.handleFetchCommits}
+              onScanRepo={github.handleScanRepo}
             />
             <CommitLogSection commits={github.commits} />
           </div>

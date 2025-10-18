@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Commit, RepoFile } from '../types';
 
+// Helper function to convert string to Base64
 const toBase64 = (str: string) => btoa(unescape(encodeURIComponent(str)));
 
+// Helper function to determine commit message type based on file path
 const getCommitType = (filePath: string): string => {
   if (!filePath) return 'feat';
   if (filePath.includes('src/commands')) return 'feat';
@@ -20,6 +22,8 @@ export const useGitHub = () => {
   const [commits, setCommits] = useState<Commit[]>([]);
   const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [repoFilePaths, setRepoFilePaths] = useState<Map<string, string>>(new Map());
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [storeToken, setStoreToken] = useState(false);
 
@@ -65,21 +69,50 @@ export const useGitHub = () => {
   const showNotification = (message: string, type: 'success' | 'error') => {
     setNotification({ message, type });
   };
-  
+
   const autoMessage = (file: RepoFile) => {
     const type = getCommitType(file.path);
-    const scope = file.path.split('/')[1] || 'general';
+    const scopeParts = file.path.split('/');
+    const scope = scopeParts.length > 1 ? scopeParts[scopeParts.length - 2] : 'general';
     const action = file.status === 'idle' ? 'update' : 'create';
     return `${type}(${scope}): ${action} ${file.name} - ${username || 'user'}`;
   };
+  
+  const handleScanRepo = useCallback(async () => {
+    if (!token || !repo) {
+        showNotification('Token and Repository must be filled to scan.', 'error');
+        return;
+    }
+    setIsScanning(true);
+    setRepoFilePaths(new Map());
+    try {
+        const response = await fetch(`https://api.github.com/repos/${repo}/git/trees/${branch}?recursive=1`, {
+            headers: { 'Authorization': `token ${token}` },
+        });
+        if (!response.ok) throw new Error('Failed to scan repository. Check repo name and branch.');
+        const { tree } = await response.json();
+        const fileMap = new Map();
+        for (const item of tree) {
+            if (item.type === 'blob') {
+                const fileName = item.path.split('/').pop();
+                if(fileName) fileMap.set(fileName, item.path);
+            }
+        }
+        setRepoFilePaths(fileMap);
+        showNotification(`Scan complete! Found ${fileMap.size} files.`, 'success');
+    } catch (error) {
+        showNotification((error as Error).message, 'error');
+    }
+    setIsScanning(false);
+  }, [token, repo, branch]);
 
   const processFiles = (fileList: FileList) => {
     Array.from(fileList).forEach(file => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const content = event.target?.result as string;
-        // Path awalnya adalah nama file itu sendiri, user bisa edit
-        setFiles(prev => [...prev, { name: file.name, path: file.name, content, status: 'idle' }]);
+        const existingPath = repoFilePaths.get(file.name) || '';
+        setFiles(prev => [...prev, { name: file.name, path: existingPath, content, status: 'idle' }]);
       };
       reader.readAsText(file);
     });
@@ -98,7 +131,7 @@ export const useGitHub = () => {
       const response = await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`, {
         headers: { 'Authorization': `token ${token}` },
       });
-      if (response.status === 404) return null;
+      if (response.status === 404) return null; // File doesn't exist, this is a new file
       if (!response.ok) throw new Error(`Failed to get file SHA for ${path}`);
       const data = await response.json();
       return data.sha;
@@ -120,7 +153,7 @@ export const useGitHub = () => {
         message: autoMessage(file),
         content: toBase64(file.content),
         branch: branch,
-        ...(sha && { sha }),
+        ...(sha && { sha }), // only include sha if it exists (for updates)
       };
 
       const response = await fetch(`https://api.github.com/repos/${repo}/contents/${file.path}`, {
@@ -185,8 +218,21 @@ export const useGitHub = () => {
   }, [token, repo, branch]);
 
   return {
-    token, setToken, repo, setRepo, branch, setBranch, files, commits,
-    isLoading, notification, setNotification, storeToken, setStoreToken,
-    processFiles, removeFile, updateFilePath, handleCommitAndPush, handleFetchCommits,
+    token, setToken,
+    repo, setRepo,
+    branch, setBranch,
+    files,
+    commits,
+    isLoading,
+    isScanning,
+    repoFilled: !!token && !!repo,
+    notification, setNotification,
+    storeToken, setStoreToken,
+    processFiles,
+    removeFile,
+    updateFilePath,
+    handleCommitAndPush,
+    handleFetchCommits,
+    handleScanRepo,
   };
 };
