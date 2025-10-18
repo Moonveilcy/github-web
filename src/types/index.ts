@@ -15,6 +15,7 @@ export interface Commit {
 
 export interface RepoFile {
   name: string;
+  path: string; 
   content: string;
   status: 'idle' | 'committing' | 'committed' | 'error';
 }
