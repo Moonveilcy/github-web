@@ -55,6 +55,9 @@ export const ConfigSection = ({ token, setToken, storeToken, setStoreToken, repo
                     <label htmlFor="storeToken" className="font-medium">Store token in localStorage</label>
                 </div>
             </div>
+            <div className="mt-5 p-3 bg-yellow-200 border-2 border-black rounded-md text-xs text-yellow-900">
+                <p><strong>🛡️ Security Note:</strong> Your token is never sent to any server. It's used directly from your browser to communicate with GitHub. For maximum safety, use a token with `repo` scope and an expiration date.</p>
+            </div>
         </section>
     );
 }
