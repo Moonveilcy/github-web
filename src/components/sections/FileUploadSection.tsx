@@ -13,29 +13,32 @@ export const FileUploadSection = ({ files, processFiles, removeFile }: FileUploa
     };
 
     return (
-        <section className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md mb-8">
-            <h2 className="text-lg font-semibold mb-4">Files to Commit</h2>
+        <section className="bg-white dark:bg-gray-800/80 p-6 rounded-lg border-2 border-blue-400 shadow-[4px_4px_0px_#60A5FA] transition-shadow hover:shadow-[6px_6px_0px_#60A5FA]">
+            <h2 className="text-lg font-semibold mb-4 text-blue-600 dark:text-blue-400">Files to Commit</h2>
             <div
                 onDrop={handleFileDrop}
                 onDragOver={(e) => e.preventDefault()}
-                className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center"
+                className="border-2 border-dashed border-slate-300 dark:border-gray-600 rounded-lg p-8 text-center"
             >
-                <p>Drag & drop files here, or</p>
-                <input
-                    type="file"
-                    multiple
-                    onChange={(e) => e.target.files && processFiles(e.target.files)}
-                    className="mt-2 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-300 dark:hover:file:bg-blue-900/50"
-                />
+                <p className="text-slate-500 dark:text-slate-400">Drag & drop files here, or</p>
+                <label className="mt-2 text-sm font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
+                    Pilih File
+                    <input
+                        type="file"
+                        multiple
+                        onChange={(e) => e.target.files && processFiles(e.target.files)}
+                        className="sr-only"
+                    />
+                </label>
             </div>
-            <div className="mt-4 space-y-2">
+            <div className="mt-4 space-y-2 max-h-48 overflow-y-auto">
                 {files.map((file, index) => (
-                <div key={index} className="flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-md">
+                <div key={index} className="flex items-center justify-between p-2 bg-slate-100 dark:bg-gray-700 rounded-md">
                     <span className="truncate font-mono text-sm">{file.name}</span>
                     <div className="flex items-center gap-2">
-                    {file.status === 'committing' && <span className="text-xs text-blue-500">Committing...</span>}
-                    {file.status === 'committed' && <span className="text-xs text-green-500">Committed ✓</span>}
-                    {file.status === 'error' && <span className="text-xs text-red-500">Error ✗</span>}
+                    {file.status === 'committing' && <span className="text-xs text-blue-500">...</span>}
+                    {file.status === 'committed' && <span className="text-xs text-green-500">✓</span>}
+                    {file.status === 'error' && <span className="text-xs text-red-500">✗</span>}
                     <button onClick={() => removeFile(index)} className="text-red-500 hover:text-red-700 font-bold">
                         &times;
                     </button>

@@ -1,23 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Commit, RepoFile } from '../types';
 
-// Helper function to encode file content to Base64
 const toBase64 = (str: string) => btoa(unescape(encodeURIComponent(str)));
 
 export const useGitHub = () => {
   const [token, setToken] = useState('');
-  const [repo, setRepo] = useState(''); // e.g., 'username/repo-name'
+  const [repo, setRepo] = useState('');
   const [branch, setBranch] = useState('main');
   const [files, setFiles] = useState<RepoFile[]>([]);
   const [commits, setCommits] = useState<Commit[]>([]);
   const [username, setUsername] = useState('');
-  
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  
   const [storeToken, setStoreToken] = useState(false);
 
-  // Load token from localStorage
   useEffect(() => {
     const storedToken = localStorage.getItem('githubToken');
     const shouldStore = localStorage.getItem('shouldStoreToken') === 'true';
@@ -27,7 +23,6 @@ export const useGitHub = () => {
     }
   }, []);
 
-  // Save/remove token to localStorage
   useEffect(() => {
     if (storeToken && token) {
       localStorage.setItem('githubToken', token);
@@ -38,7 +33,6 @@ export const useGitHub = () => {
     }
   }, [token, storeToken]);
 
-  // Fetch username when token changes
   useEffect(() => {
     if (!token) {
       setUsername('');
@@ -53,7 +47,6 @@ export const useGitHub = () => {
         const data = await response.json();
         setUsername(data.login);
       } catch (error) {
-        console.error("Username fetch error:", error);
         setNotification({ message: "Invalid token. Could not fetch username.", type: 'error' });
       }
     };
@@ -91,7 +84,6 @@ export const useGitHub = () => {
       const data = await response.json();
       return data.sha;
     } catch (error) {
-      console.error(error);
       throw error;
     }
   };
@@ -133,7 +125,6 @@ export const useGitHub = () => {
     }
     setIsLoading(true);
     let allSucceeded = true;
-    const filesToCommit = files.filter(f => f.status === 'idle');
 
     for (const [index, file] of files.entries()) {
         if (file.status !== 'idle') continue;
