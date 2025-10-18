@@ -3,10 +3,10 @@ import { Commit, RepoFile } from '../types';
 
 const toBase64 = (str: string) => btoa(unescape(encodeURIComponent(str)));
 
-// Fungsi baru untuk menebak tipe commit
 const getCommitType = (filePath: string): string => {
+  if (!filePath) return 'feat';
   if (filePath.includes('src/commands')) return 'feat';
-  if (filePath.includes('src/')) return 'fix';
+  if (filePath.includes('src/models')) return 'fix';
   if (filePath.match(/(\.md|LICENSE)$/i)) return 'docs';
   if (filePath.match(/(package\.json|config\.js)$/i)) return 'chore';
   return 'refactor';
@@ -66,28 +66,27 @@ export const useGitHub = () => {
     setNotification({ message, type });
   };
   
-  // autoMessage di-upgrade
   const autoMessage = (file: RepoFile) => {
     const type = getCommitType(file.path);
-    const scope = file.path.split('/')[1] || 'general'; // Ambil scope dari folder kedua
-    return `${type}(${scope}): update ${file.name} - ${username || 'user'}`;
+    const scope = file.path.split('/')[1] || 'general';
+    const action = file.status === 'idle' ? 'update' : 'create';
+    return `${type}(${scope}): ${action} ${file.name} - ${username || 'user'}`;
   };
 
-  const processFiles = (fileHandles: FileSystemFileHandle[]) => {
-    fileHandles.forEach(async (handle) => {
-        if (handle.kind !== 'file') return;
-        const file = await handle.getFile();
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const content = event.target?.result as string;
-            // Dapatkan path relatif dari handle
-            // @ts-ignore - getRelativePath is not in standard TS lib yet
-            handle.getRelativePath(handle.ancestor).then(path => {
-                 setFiles(prev => [...prev, { name: file.name, path, content, status: 'idle' }]);
-            });
-        };
-        reader.readAsText(file);
+  const processFiles = (fileList: FileList) => {
+    Array.from(fileList).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        // Path awalnya adalah nama file itu sendiri, user bisa edit
+        setFiles(prev => [...prev, { name: file.name, path: file.name, content, status: 'idle' }]);
+      };
+      reader.readAsText(file);
     });
+  };
+
+  const updateFilePath = (index: number, newPath: string) => {
+    setFiles(prev => prev.map((file, i) => i === index ? { ...file, path: newPath } : file));
   };
 
   const removeFile = (indexToRemove: number) => {
@@ -109,18 +108,21 @@ export const useGitHub = () => {
   };
 
   const commitFile = async (file: RepoFile, index: number) => {
+    if (!file.path) {
+        showNotification(`Path is required for ${file.name}.`, 'error');
+        setFiles(prev => prev.map((f, i) => i === index ? { ...f, status: 'error' } : f));
+        return false;
+    }
     setFiles(prev => prev.map((f, i) => i === index ? { ...f, status: 'committing' } : f));
     try {
-      // Gunakan file.path sekarang
       const sha = await getFileSha(file.path);
       const body = {
         message: autoMessage(file),
-        content: toBase6á4(file.content),
+        content: toBase64(file.content),
         branch: branch,
         ...(sha && { sha }),
       };
 
-      // Gunakan file.path di URL API
       const response = await fetch(`https://api.github.com/repos/${repo}/contents/${file.path}`, {
         method: 'PUT',
         headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3+json' },
@@ -185,6 +187,6 @@ export const useGitHub = () => {
   return {
     token, setToken, repo, setRepo, branch, setBranch, files, commits,
     isLoading, notification, setNotification, storeToken, setStoreToken,
-    processFiles, removeFile, handleCommitAndPush, handleFetchCommits,
+    processFiles, removeFile, updateFilePath, handleCommitAndPush, handleFetchCommits,
   };
 };

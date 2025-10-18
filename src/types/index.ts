@@ -15,7 +15,7 @@ export interface Commit {
 
 export interface RepoFile {
   name: string;
-  path: string; 
+  path: string; // Path sekarang akan di-input manual oleh user
   content: string;
   status: 'idle' | 'committing' | 'committed' | 'error';
 }
