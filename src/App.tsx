@@ -34,6 +34,8 @@ function App() {
               files={github.files} 
               processFiles={github.processFiles} 
               removeFile={github.removeFile}
+              // INI BAGIAN YANG DIPERBAIKI:
+              updateFilePath={github.updateFilePath} 
             />
           </div>
           <div className="space-y-8 mt-8 lg:mt-0">
