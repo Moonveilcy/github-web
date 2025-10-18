@@ -26,33 +26,33 @@ export const ConfigSection = ({ token, setToken, storeToken, setStoreToken, repo
     };
 
     return (
-        <section className="bg-white dark:bg-gray-800/80 p-6 rounded-lg border-2 border-purple-400 shadow-[4px_4px_0px_#A78BFA] transition-shadow hover:shadow-[6px_6px_0px_#A78BFA]">
-            <h2 className="text-lg font-semibold mb-4 text-purple-600 dark:text-purple-400">GitHub Configuration</h2>
+        <section className="bg-yellow-100 text-slate-900 p-6 rounded-lg border-2 border-black shadow-[4px_4px_0px_#000] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[8px_8px_0px_#000]">
+            <h2 className="text-lg font-bold mb-4 text-slate-800">GitHub Configuration</h2>
             <div className="space-y-4">
                 <input
                     type="password"
                     placeholder="GitHub Personal Access Token"
                     value={token}
                     onChange={(e) => setToken(e.target.value)}
-                    className="w-full p-2 border rounded-md bg-slate-50 dark:bg-gray-700 border-slate-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
+                    className="w-full p-2 border-2 border-black rounded-md bg-white focus:ring-2 focus:ring-yellow-500 focus:outline-none"
                 />
                 <input
                     type="text"
                     placeholder="Repository (e.g., username/repo-name)"
                     value={repo}
                     onChange={handleRepoChange}
-                    className="w-full p-2 border rounded-md bg-slate-50 dark:bg-gray-700 border-slate-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
+                    className="w-full p-2 border-2 border-black rounded-md bg-white focus:ring-2 focus:ring-yellow-500 focus:outline-none"
                 />
                 <input
                     type="text"
                     placeholder="Branch (e.g., main)"
                     value={branch}
                     onChange={(e) => setBranch(e.target.value)}
-                    className="w-full p-2 border rounded-md bg-slate-50 dark:bg-gray-700 border-slate-300 dark:border-gray-600 focus:ring-2 focus:ring-purple-500"
+                    className="w-full p-2 border-2 border-black rounded-md bg-white focus:ring-2 focus:ring-yellow-500 focus:outline-none"
                 />
                 <div className="flex items-center gap-2 text-sm pt-2">
-                    <input type="checkbox" id="storeToken" checked={storeToken} onChange={(e) => setStoreToken(e.target.checked)} className="h-4 w-4 rounded text-purple-600 focus:ring-purple-500"/>
-                    <label htmlFor="storeToken">Store token in localStorage</label>
+                    <input type="checkbox" id="storeToken" checked={storeToken} onChange={(e) => setStoreToken(e.target.checked)} className="h-4 w-4 rounded border-2 border-black text-yellow-600 focus:ring-yellow-500"/>
+                    <label htmlFor="storeToken" className="font-medium">Store token in localStorage</label>
                 </div>
             </div>
         </section>
