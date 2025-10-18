@@ -14,13 +14,7 @@ function App() {
       <Header />
       
       <main className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
-        {github.notification && (
-          <Toast 
-            message={github.notification.message} 
-            type={github.notification.type} 
-            onDismiss={() => github.setNotification(null)} 
-          />
-        )}
+        {github.notification && ( /* ... */ )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 lg:gap-8">
           <div className="space-y-8">
@@ -29,12 +23,15 @@ function App() {
               storeToken={github.storeToken} setStoreToken={github.setStoreToken}
               repo={github.repo} setRepo={github.setRepo}
               branch={github.branch} setBranch={github.setBranch}
+              geminiKey={github.geminiKey} setGeminiKey={github.setGeminiKey}
             />
             <FileUploadSection 
               files={github.files} 
               processFiles={github.processFiles} 
               removeFile={github.removeFile}
               updateFilePath={github.updateFilePath} 
+              updateFileCommitDetails={github.updateFileCommitDetails}
+              onGenerateMessage={github.handleGenerateCommitMessage}
             />
           </div>
           <div className="space-y-8 mt-8 lg:mt-0">

@@ -7,9 +7,11 @@ interface ConfigSectionProps {
     setRepo: (repo: string) => void;
     branch: string;
     setBranch: (branch: string) => void;
+    geminiKey: string;
+    setGeminiKey: (key: string) => void;
 }
 
-export const ConfigSection = ({ token, setToken, storeToken, setStoreToken, repo, setRepo, branch, setBranch }: ConfigSectionProps) => {
+export const ConfigSection = ({ token, setToken, storeToken, setStoreToken, repo, setRepo, branch, setBranch, geminiKey, setGeminiKey }: ConfigSectionProps) => {
     
     const handleRepoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let value = e.target.value;
@@ -26,37 +28,41 @@ export const ConfigSection = ({ token, setToken, storeToken, setStoreToken, repo
     };
 
     return (
-        <section className="bg-yellow-100 text-slate-900 p-6 rounded-lg border-2 border-black shadow-[4px_4px_0px_#000] transition-all hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[8px_8px_0px_#000]">
-            <h2 className="text-lg font-bold mb-4 text-slate-800">GitHub Configuration</h2>
+        <section className="bg-yellow-100 text-slate-900 p-6 rounded-lg border-2 border-black shadow-[4px_4px_0px_#000]">
+            <h2 className="text-lg font-bold mb-4 text-slate-800">Configuration</h2>
             <div className="space-y-4">
                 <input
                     type="password"
                     placeholder="GitHub Personal Access Token"
                     value={token}
                     onChange={(e) => setToken(e.target.value)}
-                    className="w-full p-2 border-2 border-black rounded-md bg-white focus:ring-2 focus:ring-yellow-500 focus:outline-none"
+                    className="w-full p-2 border-2 border-black rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                />
+                <input
+                    type="password"
+                    placeholder="Gemini API Key"
+                    value={geminiKey}
+                    onChange={(e) => setGeminiKey(e.target.value)}
+                    className="w-full p-2 border-2 border-black rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
                 />
                 <input
                     type="text"
                     placeholder="Repository (e.g., username/repo-name)"
                     value={repo}
                     onChange={handleRepoChange}
-                    className="w-full p-2 border-2 border-black rounded-md bg-white focus:ring-2 focus:ring-yellow-500 focus:outline-none"
+                    className="w-full p-2 border-2 border-black rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
                 />
                 <input
                     type="text"
                     placeholder="Branch (e.g., main)"
                     value={branch}
                     onChange={(e) => setBranch(e.target.value)}
-                    className="w-full p-2 border-2 border-black rounded-md bg-white focus:ring-2 focus:ring-yellow-500 focus:outline-none"
+                    className="w-full p-2 border-2 border-black rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
                 />
                 <div className="flex items-center gap-2 text-sm pt-2">
                     <input type="checkbox" id="storeToken" checked={storeToken} onChange={(e) => setStoreToken(e.target.checked)} className="h-4 w-4 rounded border-2 border-black text-yellow-600 focus:ring-yellow-500"/>
                     <label htmlFor="storeToken" className="font-medium">Store token in localStorage</label>
                 </div>
-            </div>
-            <div className="mt-5 p-3 bg-yellow-200 border-2 border-black rounded-md text-xs text-yellow-900">
-                <p><strong>🛡️ Security Note:</strong> Your token is never sent to any server. It's used directly from your browser to communicate with GitHub. For maximum safety, use a token with `repo` scope and an expiration date.</p>
             </div>
         </section>
     );

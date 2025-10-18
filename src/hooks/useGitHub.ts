@@ -1,26 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Commit, RepoFile } from '../types';
 
-// Helper function to convert string to Base64
 const toBase64 = (str: string) => btoa(unescape(encodeURIComponent(str)));
-
-// Helper function to determine commit message type based on file path
-const getCommitType = (filePath: string): string => {
-  if (!filePath) return 'feat';
-  if (filePath.includes('src/commands')) return 'feat';
-  if (filePath.includes('src/models')) return 'fix';
-  if (filePath.match(/(\.md|LICENSE)$/i)) return 'docs';
-  if (filePath.match(/(package\.json|config\.js)$/i)) return 'chore';
-  return 'refactor';
-};
 
 export const useGitHub = () => {
   const [token, setToken] = useState('');
   const [repo, setRepo] = useState('');
   const [branch, setBranch] = useState('main');
+  const [geminiKey, setGeminiKey] = useState('');
   const [files, setFiles] = useState<RepoFile[]>([]);
   const [commits, setCommits] = useState<Commit[]>([]);
-  const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [repoFilePaths, setRepoFilePaths] = useState<Map<string, string>>(new Map());
@@ -29,53 +18,36 @@ export const useGitHub = () => {
 
   useEffect(() => {
     const storedToken = localStorage.getItem('githubToken');
+    const storedGeminiKey = localStorage.getItem('geminiKey');
     const shouldStore = localStorage.getItem('shouldStoreToken') === 'true';
-    if (storedToken && shouldStore) {
-      setToken(storedToken);
-      setStoreToken(true);
+    if (shouldStore) {
+        if (storedToken) setToken(storedToken);
+        if (storedGeminiKey) setGeminiKey(storedGeminiKey);
+        setStoreToken(true);
     }
   }, []);
 
   useEffect(() => {
-    if (storeToken && token) {
-      localStorage.setItem('githubToken', token);
+    if (storeToken) {
+      if(token) localStorage.setItem('githubToken', token);
+      if(geminiKey) localStorage.setItem('geminiKey', geminiKey);
       localStorage.setItem('shouldStoreToken', 'true');
     } else {
       localStorage.removeItem('githubToken');
+      localStorage.removeItem('geminiKey');
       localStorage.removeItem('shouldStoreToken');
     }
-  }, [token, storeToken]);
-
-  useEffect(() => {
-    if (!token) {
-      setUsername('');
-      return;
-    }
-    const fetchUsername = async () => {
-      try {
-        const response = await fetch('https://api.github.com/user', {
-          headers: { 'Authorization': `token ${token}` },
-        });
-        if (!response.ok) throw new Error('Failed to fetch username.');
-        const data = await response.json();
-        setUsername(data.login);
-      } catch (error) {
-        setNotification({ message: "Invalid token. Could not fetch username.", type: 'error' });
-      }
-    };
-    fetchUsername();
-  }, [token]);
+  }, [token, geminiKey, storeToken]);
 
   const showNotification = (message: string, type: 'success' | 'error') => {
     setNotification({ message, type });
   };
 
-  const autoMessage = (file: RepoFile) => {
-    const type = getCommitType(file.path);
-    const scopeParts = file.path.split('/');
-    const scope = scopeParts.length > 1 ? scopeParts[scopeParts.length - 2] : 'general';
-    const action = file.status === 'idle' ? 'update' : 'create';
-    return `${type}(${scope}): ${action} ${file.name} - ${username || 'user'}`;
+  const finalCommitMessage = (file: RepoFile) => {
+    const scopeParts = file.path.split('/').filter(p => p && !p.includes('.'));
+    const scope = scopeParts.length > 0 ? scopeParts[scopeParts.length - 1] : '';
+    const description = file.commitMessage || `update ${file.name}`;
+    return `${file.commitType}${scope ? `(${scope})` : ''}: ${description}`;
   };
   
   const handleScanRepo = useCallback(async () => {
@@ -105,6 +77,64 @@ export const useGitHub = () => {
     }
     setIsScanning(false);
   }, [token, repo, branch]);
+  
+  const handleGenerateCommitMessage = async (index: number) => {
+    const file = files[index];
+    if (!geminiKey) {
+        showNotification('Gemini API Key is required to generate messages.', 'error');
+        return;
+    }
+    if (!file.path) {
+        showNotification('File path must be set to find the original file.', 'error');
+        return;
+    }
+    setFiles(prev => prev.map((f, i) => i === index ? { ...f, status: 'generating' } : f));
+    try {
+        const oldContentResponse = await fetch(`https://api.github.com/repos/${repo}/contents/${file.path}?ref=${branch}`, {
+            headers: { 'Authorization': `token ${token}` }
+        });
+        let oldContent = '';
+        if (oldContentResponse.ok) {
+            const data = await oldContentResponse.json();
+            oldContent = atob(data.content);
+        }
+
+        const prompt = `You are an expert Git commit message generator. Analyze the difference between the old and new code below. Generate a Conventional Commit message.
+        Respond ONLY with a JSON object in this format: {"type": "commit_type", "message": "your_concise_message"}.
+        Example response: {"type": "refactor", "message": "improve API request error handling"}
+
+        OLD CODE (if any):
+        ---
+        ${oldContent}
+        ---
+
+        NEW CODE:
+        ---
+        ${file.content}
+        ---
+        `;
+
+        const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiKey}`;
+        const response = await fetch(geminiApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }]})
+        });
+
+        if (!response.ok) throw new Error('Gemini API failed.');
+
+        const result = await response.json();
+        const text = result.candidates[0].content.parts[0].text;
+        const cleanedText = text.replace(/```json|```/g, '').trim();
+        const parsed = JSON.parse(cleanedText);
+
+        updateFileCommitDetails(index, { type: parsed.type, message: parsed.message });
+
+    } catch (error) {
+        showNotification(`Failed to generate message: ${(error as Error).message}`, 'error');
+    }
+    setFiles(prev => prev.map((f, i) => i === index ? { ...f, status: 'idle' } : f));
+  };
 
   const processFiles = (fileList: FileList) => {
     Array.from(fileList).forEach(file => {
@@ -112,7 +142,14 @@ export const useGitHub = () => {
       reader.onload = (event) => {
         const content = event.target?.result as string;
         const existingPath = repoFilePaths.get(file.name) || '';
-        setFiles(prev => [...prev, { name: file.name, path: existingPath, content, status: 'idle' }]);
+        setFiles(prev => [...prev, { 
+            name: file.name, 
+            path: existingPath, 
+            content, 
+            status: 'idle',
+            commitType: 'feat',
+            commitMessage: '',
+        }]);
       };
       reader.readAsText(file);
     });
@@ -120,6 +157,19 @@ export const useGitHub = () => {
 
   const updateFilePath = (index: number, newPath: string) => {
     setFiles(prev => prev.map((file, i) => i === index ? { ...file, path: newPath } : file));
+  };
+
+  const updateFileCommitDetails = (index: number, details: { type?: string; message?: string }) => {
+    setFiles(prev => prev.map((file, i) => {
+        if (i === index) {
+            return {
+                ...file,
+                commitType: details.type !== undefined ? details.type : file.commitType,
+                commitMessage: details.message !== undefined ? details.message : file.commitMessage,
+            };
+        }
+        return file;
+    }));
   };
 
   const removeFile = (indexToRemove: number) => {
@@ -131,7 +181,7 @@ export const useGitHub = () => {
       const response = await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`, {
         headers: { 'Authorization': `token ${token}` },
       });
-      if (response.status === 404) return null; // File doesn't exist, this is a new file
+      if (response.status === 404) return null;
       if (!response.ok) throw new Error(`Failed to get file SHA for ${path}`);
       const data = await response.json();
       return data.sha;
@@ -146,14 +196,19 @@ export const useGitHub = () => {
         setFiles(prev => prev.map((f, i) => i === index ? { ...f, status: 'error' } : f));
         return false;
     }
+     if (!file.commitMessage) {
+        showNotification(`Commit description is required for ${file.name}.`, 'error');
+        setFiles(prev => prev.map((f, i) => i === index ? { ...f, status: 'error' } : f));
+        return false;
+    }
     setFiles(prev => prev.map((f, i) => i === index ? { ...f, status: 'committing' } : f));
     try {
       const sha = await getFileSha(file.path);
       const body = {
-        message: autoMessage(file),
+        message: finalCommitMessage(file),
         content: toBase64(file.content),
         branch: branch,
-        ...(sha && { sha }), // only include sha if it exists (for updates)
+        ...(sha && { sha }),
       };
 
       const response = await fetch(`https://api.github.com/repos/${repo}/contents/${file.path}`, {
@@ -176,16 +231,17 @@ export const useGitHub = () => {
   };
 
   const handleCommitAndPush = async () => {
-    if (!token || !repo || !branch || files.filter(f => f.status === 'idle').length === 0) {
+    const idleFiles = files.filter(f => f.status === 'idle');
+    if (!token || !repo || !branch || idleFiles.length === 0) {
       showNotification('Token, Repo, Branch, and at least one new file are required.', 'error');
       return;
     }
     setIsLoading(true);
     let allSucceeded = true;
 
-    for (const [index, file] of files.entries()) {
-        if (file.status !== 'idle') continue;
-        const success = await commitFile(file, index);
+    for (const file of idleFiles) {
+        const fileIndex = files.findIndex(f => f === file);
+        const success = await commitFile(file, fileIndex);
         if (!success) {
             allSucceeded = false;
             break; 
@@ -210,7 +266,6 @@ export const useGitHub = () => {
       });
       if (!response.ok) throw new Error('Failed to fetch commits.');
       setCommits(await response.json());
-      showNotification('Fetched latest commits.', 'success');
     } catch (error) {
       showNotification((error as Error).message, 'error');
     }
@@ -221,6 +276,7 @@ export const useGitHub = () => {
     token, setToken,
     repo, setRepo,
     branch, setBranch,
+    geminiKey, setGeminiKey,
     files,
     commits,
     isLoading,
@@ -231,8 +287,10 @@ export const useGitHub = () => {
     processFiles,
     removeFile,
     updateFilePath,
+    updateFileCommitDetails,
     handleCommitAndPush,
     handleFetchCommits,
     handleScanRepo,
+    handleGenerateCommitMessage,
   };
 };
