@@ -1,5 +1,4 @@
 import { useGitHub } from '../hooks/useGitHub';
-import { Header } from '../components/layout/Header';
 import { Toast } from '../components/ui/Toast';
 import { ConfigSection } from '../components/sections/ConfigSection';
 import { FileUploadSection } from '../components/sections/FileUploadSection';
@@ -10,9 +9,7 @@ export const AppPage = () => {
   const github = useGitHub();
 
   return (
-    <div className="min-h-screen font-sans bg-white text-slate-800">
-      <Header />
-      
+    <div className="font-sans bg-white text-slate-800">
       <main className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
         {github.notification && (
           <Toast 

@@ -16,7 +16,7 @@ export const UnapologeticButton = ({
   return (
     <Link
       {...props}
-      className={`inline-block px-8 py-3 border-2 border-black bg-transparent text-black font-bold relative group transition duration-200 ${className}`}
+      className={`inline-block px-8 py-3 border-2 border-black bg-white text-black font-bold relative group transition duration-200 shadow-[4px_4px_0px_#000] hover:shadow-none active:top-[2px] active:left-[2px] ${className}`}
     >
       <div 
         className={`absolute -bottom-2 -right-2 h-full w-full -z-10 group-hover:bottom-0 group-hover:right-0 transition-all duration-200 ${bgColor}`} 
