@@ -1,9 +1,10 @@
-import { GitHubIcon, DiscordIcon } from '../ui/Icons';
+import { Bot } from 'lucide-react';
+import { GitHubIcon } from '../ui/Icons';
 
 export const Footer = () => {
     const socialLinks = [
-        { name: 'GitHub', href: '#', icon: <GitHubIcon /> },
-        { name: 'Discord', href: '#', icon: <DiscordIcon /> },
+        { name: 'GitHub', href: '#', icon: <GitHubIcon width={24} height={24} /> },
+        { name: 'Discord', href: '#', icon: <Bot className="h-6 w-6" /> },
     ];
     const legalLinks = [
         { name: 'Terms of Service', href: '#' },

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Link } from 'react-router-dom';
-import { GitHubIcon, MenuIcon, XIcon } from '../ui/Icons';
+import { Menu, X } from 'lucide-react';
+import { GitHubIcon } from '../ui/Icons';
 
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -46,7 +47,7 @@ export const Navbar = () => {
               className="bg-slate-200 inline-flex items-center justify-center p-2 rounded-md text-slate-800 hover:bg-slate-300 focus:outline-none"
             >
               <span className="sr-only">Open main menu</span>
-              {isMenuOpen ? <XIcon /> : <MenuIcon />}
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
         </div>
