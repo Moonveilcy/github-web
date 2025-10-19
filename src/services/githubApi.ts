@@ -3,11 +3,12 @@ import { RepoFile } from "../types";
 const GITHUB_API_BASE = "https://api.github.com";
 
 const apiFetch = async (url: string, token: string, options: RequestInit = {}) => {
+    const cleanToken = token.trim();
     const response = await fetch(`${GITHUB_API_BASE}${url}`, {
         ...options,
         headers: {
             ...options.headers,
-            'Authorization': `token ${token}`,
+            'Authorization': `token ${cleanToken}`,
             'Accept': 'application/vnd.github.v3+json',
         },
     });
@@ -110,7 +111,7 @@ export const commitMultipleFiles = async (
     );
     
     const tree = fileBlobs.map(blob => ({
-        path: blob.path,
+        path: file.path,
         mode: '100644', 
         type: 'blob',
         sha: blob.sha,
