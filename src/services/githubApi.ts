@@ -1,14 +1,12 @@
 import { RepoFile } from "../types";
 
 const GITHUB_API_BASE = "https://api.github.com";
-
 const apiFetch = async (url: string, token: string, options: RequestInit = {}) => {
-    const cleanToken = token.trim();
     const response = await fetch(`${GITHUB_API_BASE}${url}`, {
         ...options,
         headers: {
             ...options.headers,
-            'Authorization': `token ${cleanToken}`,
+            'Authorization': `token ${token}`,
             'Accept': 'application/vnd.github.v3+json',
         },
     });
@@ -20,14 +18,14 @@ const apiFetch = async (url: string, token: string, options: RequestInit = {}) =
 };
 
 export const scanRepoTree = (repo: string, branch: string, token: string) => 
-    apiFetch(`/repos/${repo}/git/trees/${branch}?recursive=1`, token);
+    apiFetch(`/repos/${repo}/git/trees/${branch}?recursive=1`, token.trim());
 
 export const fetchCommits = (repo: string, branch: string, token: string) =>
-    apiFetch(`/repos/${repo}/commits?sha=${branch}&per_page=10`, token);
+    apiFetch(`/repos/${repo}/commits?sha=${branch}&per_page=10`, token.trim());
 
 export const getFileContent = async (repo: string, path: string, branch: string, token: string) => {
     try {
-        const data = await apiFetch(`/repos/${repo}/contents/${path}?ref=${branch}`, token);
+        const data = await apiFetch(`/repos/${repo}/contents/${path}?ref=${branch}`, token.trim());
         return atob(data.content);
     } catch (error) {
         if ((error as Error).message.includes("Not Found")) {
@@ -38,28 +36,28 @@ export const getFileContent = async (repo: string, path: string, branch: string,
 };
 
 const getLatestCommitSha = (repo: string, branch: string, token: string) =>
-    apiFetch(`/repos/${repo}/git/ref/heads/${branch}`, token).then(data => data.object.sha);
+    apiFetch(`/repos/${repo}/git/ref/heads/${branch}`, token.trim()).then(data => data.object.sha);
 
 const createBlob = (repo: string, content: string, token: string) =>
-    apiFetch(`/repos/${repo}/git/blobs`, token, {
+    apiFetch(`/repos/${repo}/git/blobs`, token.trim(), {
         method: 'POST',
         body: JSON.stringify({ content: btoa(unescape(encodeURIComponent(content))), encoding: 'base64' }),
     }).then(data => data.sha);
 
 const createTree = (repo: string, baseTreeSha: string, tree: { path: string; mode: string; type: string; sha: string }[], token: string) =>
-    apiFetch(`/repos/${repo}/git/trees`, token, {
+    apiFetch(`/repos/${repo}/git/trees`, token.trim(), {
         method: 'POST',
         body: JSON.stringify({ base_tree: baseTreeSha, tree }),
     }).then(data => data.sha);
 
 const createCommit = (repo: string, message: string, treeSha: string, parentCommitSha: string, token: string) =>
-    apiFetch(`/repos/${repo}/git/commits`, token, {
+    apiFetch(`/repos/${repo}/git/commits`, token.trim(), {
         method: 'POST',
         body: JSON.stringify({ message, tree: treeSha, parents: [parentCommitSha] }),
     }).then(data => data.sha);
 
 const updateBranchRef = (repo: string, branch: string, commitSha: string, token: string) =>
-    apiFetch(`/repos/${repo}/git/refs/heads/${branch}`, token, {
+    apiFetch(`/repos/${repo}/git/refs/heads/${branch}`, token.trim(), {
         method: 'PATCH',
         body: JSON.stringify({ sha: commitSha }),
     });
@@ -99,29 +97,30 @@ export const commitMultipleFiles = async (
     token: string,
     files: RepoFile[],
 ) => {
-    const parentCommitSha = await getLatestCommitSha(repo, branch);
-    const parentCommitData = await apiFetch(`/repos/${repo}/git/commits/${parentCommitSha}`, token);
+    const cleanToken = token.trim();
+    const parentCommitSha = await getLatestCommitSha(repo, branch, cleanToken);
+    const parentCommitData = await apiFetch(`/repos/${repo}/git/commits/${parentCommitSha}`, cleanToken);
     const baseTreeSha = parentCommitData.tree.sha;
 
     const fileBlobs = await Promise.all(
         files.map(async file => ({
             path: file.path,
-            sha: await createBlob(repo, file.content, token),
+            sha: await createBlob(repo, file.content, cleanToken),
         }))
     );
     
     const tree = fileBlobs.map(blob => ({
-        path: file.path,
+        path: blob.path,
         mode: '100644', 
         type: 'blob',
         sha: blob.sha,
     }));
 
-    const newTreeSha = await createTree(repo, baseTreeSha, tree, token);
+    const newTreeSha = await createTree(repo, baseTreeSha, tree, cleanToken);
     
     const commitMessage = createSummaryCommitMessage(files);
 
-    const newCommitSha = await createCommit(repo, commitMessage, newTreeSha, parentCommitSha, token);
-    await updateBranchRef(repo, branch, newCommitSha, token);
+    const newCommitSha = await createCommit(repo, commitMessage, newTreeSha, parentCommitSha, cleanToken);
+    await updateBranchRef(repo, branch, newCommitSha, cleanToken);
     return newCommitSha;
 };
