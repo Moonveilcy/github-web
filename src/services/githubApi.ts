@@ -63,6 +63,35 @@ const updateBranchRef = (repo: string, branch: string, commitSha: string, token:
         body: JSON.stringify({ sha: commitSha }),
     });
 
+const createSummaryCommitMessage = (files: RepoFile[]): string => {
+    if (files.length === 0) return "chore: empty commit";
+
+    const getScope = (path: string): string => {
+        const pathParts = path.split('/').filter(p => p && !p.includes('.'));
+        return pathParts.length > 0 ? pathParts.pop()! : path.split('.')[0];
+    };
+
+    if (files.length === 1) {
+        const file = files[0];
+        const scope = getScope(file.path);
+        const description = file.commitMessage || `update ${file.name}`;
+        return `${file.commitType}(${scope}): ${description}`;
+    }
+
+    const types = new Set(files.map(f => f.commitType));
+    const primaryType = types.has('feat') ? 'feat' : types.has('fix') ? 'fix' : 'chore';
+    
+    const subject = `${primaryType}: update ${files.length} files across multiple scopes`;
+
+    const body = files.map(file => {
+        const scope = getScope(file.path);
+        const description = file.commitMessage || `update ${file.name}`;
+        return `* ${file.commitType}(${scope}): ${description}`;
+    }).join('\n');
+
+    return `${subject}\n\n${body}`;
+};
+
 export const commitMultipleFiles = async (
     repo: string,
     branch: string,
@@ -82,16 +111,14 @@ export const commitMultipleFiles = async (
     
     const tree = fileBlobs.map(blob => ({
         path: blob.path,
-        mode: '100644',
+        mode: '100644', 
         type: 'blob',
         sha: blob.sha,
     }));
 
     const newTreeSha = await createTree(repo, baseTreeSha, tree, token);
     
-    const commitMessage = files.length > 1
-        ? `chore: update ${files.length} files`
-        : `${files[0].commitType}(scope): ${files[0].commitMessage || `update ${files[0].name}`}`;
+    const commitMessage = createSummaryCommitMessage(files);
 
     const newCommitSha = await createCommit(repo, commitMessage, newTreeSha, parentCommitSha, token);
     await updateBranchRef(repo, branch, newCommitSha, token);
