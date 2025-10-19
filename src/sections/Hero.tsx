@@ -4,14 +4,14 @@ export const Hero = () => {
     return (
         <section className="bg-yellow-50 flex items-center overflow-hidden">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-24">
-                <div className="grid md:grid-cols-2 gap-12 items-center">                   
+                <div className="grid md:grid-cols-2 gap-12 items-center">
                     <div className="md:hidden">
                         <img 
                             src="/gitmoon.png" 
                             alt="Gitmoon Application Screenshot" 
                             className="rounded-lg w-full max-w-sm mx-auto"
                         />
-                    </div>                 
+                    </div>
                     <div className="text-left">
                         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tighter">
                             <span className="block">Commit & Push</span>
@@ -25,12 +25,14 @@ export const Hero = () => {
                                 Launch App
                             </UnapologeticButton>
                         </div>
-                    </div>                 
-                    <img 
-                        src="/gitmoon.png" 
-                        alt="Gitmoon Application Screenshot" 
-                        className="hidden md:block rounded-lg shadow-2xl transform transition-transform duration-500 hover:scale-105"
-                    />
+                    </div>
+                    <div className="hidden md:block bg-transparent shadow-none p-0">
+                        <img 
+                            src="/gitmoon.png" 
+                            alt="Gitmoon Application Screenshot" 
+                            className="rounded-lg shadow-2xl transform transition-transform duration-500 hover:scale-105"
+                        />
+                    </div>
 
                 </div>
             </div>
